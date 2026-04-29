@@ -1,5 +1,7 @@
 const db = require('../config/database');
 
+const jwt = require('jsonwebtoken');
+
 const createProject = (req, res) => {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: 'Project name required' });
@@ -13,7 +15,32 @@ const createProject = (req, res) => {
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)')
     .run(result.lastInsertRowid, req.user.id);
 
-  res.status(201).json({ message: 'Project created', projectId: result.lastInsertRowid });
+  let newToken = null;
+  let newUser = null;
+  let promoted = false;
+
+  // Promote creator to admin if they aren't already
+  if (req.user.role !== 'admin') {
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', req.user.id);
+    promoted = true;
+
+    // Issue a fresh token with the new role
+    newUser = { 
+      id: req.user.id, 
+      name: req.user.name, 
+      email: req.user.email, 
+      role: 'admin' 
+    };
+    newToken = jwt.sign(newUser, process.env.JWT_SECRET, { expiresIn: '7d' });
+  }
+
+  res.status(201).json({ 
+    message: 'Project created', 
+    projectId: result.lastInsertRowid,
+    promoted,
+    newToken,
+    newUser
+  });
 };
 
 const getProjects = (req, res) => {
@@ -59,4 +86,22 @@ const removeMember = (req, res) => {
   res.json({ message: 'Member removed' });
 };
 
-module.exports = { createProject, getProjects, addMember, getMembers, removeMember };
+const deleteProject = (req, res) => {
+  const { projectId } = req.params;
+
+  // Check if the project belongs to this admin (only creator can delete)
+  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (project.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Only the creator can delete this project' });
+  }
+
+  // Delete in order: tasks → members → project
+  db.prepare('DELETE FROM tasks WHERE project_id = ?').run(projectId);
+  db.prepare('DELETE FROM project_members WHERE project_id = ?').run(projectId);
+  db.prepare('DELETE FROM projects WHERE id = ?').run(projectId);
+
+  res.json({ message: 'Project deleted' });
+};
+
+module.exports = { createProject, getProjects, addMember, getMembers, removeMember, deleteProject };

@@ -116,7 +116,7 @@
     <span>Team Task Manager</span>
     <div>
       <span id="welcomeUser"></span>
-      <a href="/tasks.html" id="tasksLink" style="display:none">Manage Tasks</a>
+      <a href="/tasks.html" id="tasksLink">Manage Tasks</a>
       <button onclick="logout()">Logout</button>
     </div>
   </nav>
@@ -209,10 +209,7 @@
     // Show welcome message
     document.getElementById('welcomeUser').innerText = 'Hi, ' + user.name;
 
-    // Show Manage Tasks link only for admin
-    if (user.role === 'admin') {
-      document.getElementById('tasksLink').style.display = 'inline';
-    }
+   
 
     // Logout
     function logout() {

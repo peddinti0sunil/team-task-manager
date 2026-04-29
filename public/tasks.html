@@ -167,6 +167,7 @@
             <th>Name</th>
             <th>Description</th>
             <th>Members</th>
+            <th>Action</th>
 
           </tr>
         </thead>
@@ -254,7 +255,7 @@
     const user = JSON.parse(localStorage.getItem('user'));
   
     if (!token || !user) { window.location.href = '/index.html'; }
-    if (user.role !== 'admin') { window.location.href = '/dashboard.html'; }
+    
   
     function logout() {
       localStorage.clear();
@@ -302,6 +303,9 @@
             <td>${p.name}</td>
             <td>${p.description || '-'}</td>
             <td id="members-${p.id}">Loading...</td>
+            <td>
+              <button class="btn btn-danger" onclick="deleteProject(${p.id}, '${p.name}')">Delete</button>
+            </td>
           </tr>
         `).join('');
         // Load members for each project
@@ -326,9 +330,9 @@
     async function createProject() {
       const name = document.getElementById('projectName').value;
       const description = document.getElementById('projectDesc').value;
-  
+    
       if (!name) { showMessage('Project name is required', 'error'); return; }
-  
+    
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: {
@@ -337,9 +341,18 @@
         },
         body: JSON.stringify({ name, description })
       });
-  
+    
       const data = await res.json();
       if (res.ok) {
+        // If user was promoted, save the new token and reload
+        if (data.promoted && data.newToken) {
+          localStorage.setItem('token', data.newToken);
+          localStorage.setItem('user', JSON.stringify(data.newUser));
+          showMessage('Project created! You are now an admin. Reloading...', 'success');
+          setTimeout(() => location.reload(), 1500);
+          return;
+        }
+        
         showMessage('Project created!', 'success');
         document.getElementById('projectName').value = '';
         document.getElementById('projectDesc').value = '';
@@ -372,6 +385,24 @@
         showMessage('Member added to project!', 'success');
       } else {
         showMessage(data.error || 'Failed to add member', 'error');
+      }
+    }
+
+    async function deleteProject(projectId, projectName) {
+      if (!confirm(`Delete project "${projectName}"? This will also delete all its tasks and members.`)) return;
+    
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    
+      const data = await res.json();
+      if (res.ok) {
+        showMessage('Project deleted!', 'success');
+        loadProjects();
+        loadTasks();
+      } else {
+        showMessage(data.error || 'Failed to delete project', 'error');
       }
     }
 
