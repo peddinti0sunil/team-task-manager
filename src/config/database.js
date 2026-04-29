@@ -1,13 +1,19 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
 // Use Railway volume path in production, local path otherwise
-const dbPath = process.env.NODE_ENV === 'production'
-  ? '/app/data/taskmanager.db'
-  : path.join(__dirname, '../../taskmanager.db');
+const dbDir = process.env.NODE_ENV === 'production'
+  ? '/app/data'
+  : path.join(__dirname, '../..');
 
+// Make sure the directory exists
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = path.join(dbDir, 'taskmanager.db');
 const db = new Database(dbPath);
-
 // Create tables if they don't exist
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
