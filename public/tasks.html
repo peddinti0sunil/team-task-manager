@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Tasks - Team Task Manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+    nav {
+      background: #4f46e5;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    nav span { font-size: 1.2rem; font-weight: bold; }
+
+    nav div { display: flex; gap: 1rem; align-items: center; }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    nav button {
+      padding: 0.4rem 0.8rem;
+      background: white;
+      color: #4f46e5;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .container { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+    .section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    h2 { color: #333; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid.single { grid-template-columns: 1fr; }
+
+    input, select, textarea {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      width: 100%;
+    }
+
+    textarea { resize: vertical; height: 80px; }
+
+    .btn {
+      padding: 0.65rem 1.2rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    .btn-primary { background: #4f46e5; color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+
+    th { background: #f8f8f8; color: #555; }
+
+    .badge {
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .todo { background: #fef3c7; color: #92400e; }
+    .in-progress { background: #dbeafe; color: #1e40af; }
+    .done { background: #d1fae5; color: #065f46; }
+
+    #message {
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .success { background: #d1fae5; color: #065f46; display: block !important; }
+    .error { background: #fee2e2; color: #991b1b; display: block !important; }
+
+    .priority-low { background: #d1fae5; color: #065f46; }
+    .priority-medium { background: #fef3c7; color: #92400e; }
+    .priority-high { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <span>Team Task Manager</span>
+    <div>
+      <a href="/dashboard.html">Dashboard</a>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <div id="message"></div>
+
+    <!-- CREATE PROJECT -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Create Project</h2>
+      </div>
+      <div class="form-grid">
+        <input type="text" id="projectName" placeholder="Project Name" />
+        <input type="text" id="projectDesc" placeholder="Description" />
+      </div>
+      <button class="btn btn-primary" onclick="createProject()">Create Project</button>
+    </div>
+
+    <!-- PROJECTS LIST -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Projects</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Members</th>
+
+          </tr>
+        </thead>
+        <tbody id="projectsTableBody">
+          <tr><td colspan="3">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CREATE TASK -->
+
+    <!-- ADD MEMBER TO PROJECT -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Add Member to Project</h2>
+      </div>
+      <div class="form-grid">
+        <select id="memberProjectSelect">
+          <option value="">Select Project</option>
+        </select>
+        <select id="memberUserSelect">
+          <option value="">Select User</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="addMemberToProject()">Add Member</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>Create Task</h2>
+      </div>
+      <div class="form-grid">
+        <input type="text" id="taskTitle" placeholder="Task Title" />
+        <input type="date" id="taskDueDate" />
+      </div>
+
+      <div class="form-grid">
+        <select id="taskPriority">
+          <option value="low">Low Priority</option>
+          <option value="medium" selected>Medium Priority</option>
+          <option value="high">High Priority</option>
+        </select>
+      </div>
+
+      <div class="form-grid single">
+        <textarea id="taskDesc" placeholder="Task Description"></textarea>
+      </div>
+      <div class="form-grid">
+        <select id="taskProject" onchange="loadProjectMembers(this.value)">
+          <option value="">Select Project</option>
+        </select>
+        <select id="taskAssignee">
+          <option value="">Select Project First</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+    </div>
+
+    <!-- TASKS LIST -->
+    <div class="section">
+      <div class="section-header">
+        <h2>All Tasks</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Due Date</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tasksTableBody">
+          <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+  
+    if (!token || !user) { window.location.href = '/index.html'; }
+    if (user.role !== 'admin') { window.location.href = '/dashboard.html'; }
+  
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/index.html';
+    }
+  
+    function showMessage(text, type) {
+      const el = document.getElementById('message');
+      el.innerText = text;
+      el.className = type;
+      setTimeout(() => { el.className = ''; el.innerText = ''; }, 3000);
+    }
+  
+    // ── USERS ─────────────────────────────────────────────
+    async function loadUsers() {
+      const res = await fetch('/api/users', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const users = await res.json();
+      window.allUsers = users;
+  
+      const userSelect = document.getElementById('memberUserSelect');
+      userSelect.innerHTML = '<option value="">Select User</option>';
+      users.forEach(u => {
+        userSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
+      });
+    }
+  
+    // ── PROJECTS ──────────────────────────────────────────
+    async function loadProjects() {
+      const res = await fetch('/api/projects', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const projects = Array.isArray(data) ? data : data.projects || [];
+  
+      // Fill projects table
+      const tbody = document.getElementById('projectsTableBody');
+      if (projects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">No projects yet</td></tr>';
+      } else {
+        tbody.innerHTML = projects.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.name}</td>
+            <td>${p.description || '-'}</td>
+            <td id="members-${p.id}">Loading...</td>
+          </tr>
+        `).join('');
+        // Load members for each project
+        projects.forEach(p => loadMembersForProject(p.id));
+      }
+  
+      // Fill task project dropdown
+      const taskSelect = document.getElementById('taskProject');
+      taskSelect.innerHTML = '<option value="">Select Project</option>';
+      projects.forEach(p => {
+        taskSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      });
+  
+      // Fill add-member project dropdown
+      const memberSelect = document.getElementById('memberProjectSelect');
+      memberSelect.innerHTML = '<option value="">Select Project</option>';
+      projects.forEach(p => {
+        memberSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      });
+    }
+  
+    async function createProject() {
+      const name = document.getElementById('projectName').value;
+      const description = document.getElementById('projectDesc').value;
+  
+      if (!name) { showMessage('Project name is required', 'error'); return; }
+  
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ name, description })
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        showMessage('Project created!', 'success');
+        document.getElementById('projectName').value = '';
+        document.getElementById('projectDesc').value = '';
+        loadProjects();
+      } else {
+        showMessage(data.message || 'Failed to create project', 'error');
+      }
+    }
+  
+    async function addMemberToProject() {
+      const projectId = document.getElementById('memberProjectSelect').value;
+      const userId = document.getElementById('memberUserSelect').value;
+  
+      if (!projectId || !userId) {
+        showMessage('Select both project and user', 'error');
+        return;
+      }
+  
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ userId: parseInt(userId) })
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        showMessage('Member added to project!', 'success');
+      } else {
+        showMessage(data.error || 'Failed to add member', 'error');
+      }
+    }
+
+    async function loadMembersForProject(projectId) {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const members = await res.json();
+    
+      const cell = document.getElementById(`members-${projectId}`);
+      if (members.length === 0) {
+        cell.innerHTML = 'No members';
+        return;
+      }
+    
+      cell.innerHTML = members.map(m => `
+        <span style="display:inline-flex; align-items:center; gap:4px; margin:2px;">
+          ${m.name}
+          <button class="btn btn-danger" 
+            style="padding:0.2rem 0.5rem; font-size:0.75rem;"
+            onclick="removeMember(${projectId}, ${m.id}, '${m.name}')">✕</button>
+        </span>
+      `).join('');
+    }
+
+    async function removeMember(projectId, userId, userName) {
+      if (!confirm(`Remove ${userName} from this project?`)) return;
+    
+      const res = await fetch(`/api/projects/${projectId}/members/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    
+      if (res.ok) {
+        showMessage(`${userName} removed from project`, 'success');
+        loadMembersForProject(projectId);
+      } else {
+        showMessage('Failed to remove member', 'error');
+      }
+    }
+  
+    // ── TASKS ─────────────────────────────────────────────
+    async function loadProjectMembers(projectId) {
+      const select = document.getElementById('taskAssignee');
+      if (!projectId) {
+        select.innerHTML = '<option value="">Select Project First</option>';
+        return;
+      }
+  
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const members = await res.json();
+  
+      select.innerHTML = '<option value="">Select Assignee</option>';
+      members.forEach(m => {
+        select.innerHTML += `<option value="${m.id}">${m.name} (${m.role})</option>`;
+      });
+    }
+  
+    async function loadTasks() {
+      const res = await fetch('/api/tasks', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const tasks = Array.isArray(data) ? data : data.tasks || [];
+  
+      const tbody = document.getElementById('tasksTableBody');
+      if (tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No tasks yet</td></tr>';
+      } else {
+        tbody.innerHTML = tasks.map(task => `
+          <tr>
+            <td>${task.title}</td>
+            <td>${task.description || '-'}</td>
+            <td>${task.due_date || '-'}</td>
+            <td><span class="badge priority-${task.priority || 'medium'}">${task.priority || 'medium'}</span></td>
+            <td><span class="badge ${task.status}">${task.status}</span></td>
+            <td>
+              <button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+  
+    async function createTask() {
+      const title = document.getElementById('taskTitle').value;
+      const description = document.getElementById('taskDesc').value;
+      const due_date = document.getElementById('taskDueDate').value;
+      const project_id = document.getElementById('taskProject').value;
+      const assigned_to = document.getElementById('taskAssignee').value;
+      const priority = document.getElementById('taskPriority').value;
+  
+      if (!title || !project_id) {
+        showMessage('Title and Project are required', 'error');
+        return;
+      }
+  
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          due_date,
+          priority,
+          project_id: parseInt(project_id),
+          assigned_to: assigned_to ? parseInt(assigned_to) : null
+        })
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        showMessage('Task created!', 'success');
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDesc').value = '';
+        document.getElementById('taskDueDate').value = '';
+        document.getElementById('taskAssignee').innerHTML = '<option value="">Select Project First</option>';
+        loadTasks();
+      } else {
+        showMessage(data.message || 'Failed to create task', 'error');
+      }
+    }
+  
+    async function deleteTask(taskId) {
+      if (!confirm('Delete this task?')) return;
+  
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+  
+      if (res.ok) {
+        showMessage('Task deleted!', 'success');
+        loadTasks();
+      } else {
+        showMessage('Failed to delete task', 'error');
+      }
+    }
+  
+    // Run on load
+    loadProjects();
+    loadTasks();
+    loadUsers();
+  </script>
+
+</body>
+</html>
